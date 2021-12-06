@@ -1,7 +1,13 @@
 package com.starlab.withreact.todo.controller;
 
+import com.starlab.withreact.todo.dto.ResponseDTO;
 import com.starlab.withreact.todo.dto.TestRequestBodyDTO;
+import com.starlab.withreact.todo.dto.TodoDTO;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @RestController
 @RequestMapping("test") // URI 경로
@@ -29,5 +35,22 @@ public class TestController {
         return "Hello World! ID " + testRequestBodyDTO.getId() + " Message " + testRequestBodyDTO.getMessage();
     }
 
-    @GetMapping
+    @GetMapping("/testResponseBody")
+    public ResponseDTO<String> testControllerResponseBody() {
+        List<String> list = new ArrayList<>();
+        list.add("Hello World!. moon's response DTO!");
+        ResponseDTO<String> response = ResponseDTO.<String>builder().data(list).build();
+        return response;
+    }
+
+    @GetMapping("/testResponseEntity")
+    public ResponseEntity<?> testControllerResponseEntity() {
+        List<String> list = new ArrayList<>();
+        list.add("Hello World! I'm entitiy. you got 400 error");
+        ResponseDTO<String> response = ResponseDTO.<String>builder().data(list).build();
+
+        // http status를 400으로 설정한다.
+        return ResponseEntity.badRequest().body(response);
+    }
+
 }
