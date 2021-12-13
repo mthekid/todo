@@ -28,6 +28,7 @@ public class TodoController {
         return ResponseEntity.ok().body(response);
     }
 
+    // TodoEntity 생성
     @PostMapping
     public ResponseEntity<?> createTodo(@RequestBody TodoDTO dto) {
         try {
@@ -65,5 +66,26 @@ public class TodoController {
         }
     }
 
+    // TodoDTO 얻어오기
+    @GetMapping
+    public ResponseEntity<?> retrieveTodoList() {
+        String temporaryUserId = "temporary-user"; // 임시 사용자 ID
+
+        // 1 서비스 메서드의 retrieve로 ToDo엔티티 리스트 가져오기
+        List<TodoEntity> entities = service.retrieve(temporaryUserId);
+
+        // 2 자바의 스트림 메커ㅣ즘으로 DTO로 변환
+        List<TodoDTO> dtos = entities.stream()
+                .map(TodoDTO::new)
+                .collect(Collectors.toList());
+
+        // 3 변환된 TodoDTO 리스트를 이용해서 ResponseDTO를 초기화
+        ResponseDTO<TodoDTO> response = ResponseDTO.<TodoDTO>builder()
+                .data(dtos)
+                .build();
+
+        // 4 반환
+        return ResponseEntity.ok().body(response);
+    }
 
 }

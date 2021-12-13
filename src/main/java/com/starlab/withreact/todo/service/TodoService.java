@@ -40,6 +40,11 @@ public class TodoService {
         return repository.findByUserId(entity.getUserId());
     }
 
+    // retrieve 파트
+    public List<TodoEntity> retrieve(final String userId) {
+        return repository.findByUserId(userId);
+    }
+
     private void validate(TodoEntity entity) {
         if(entity == null) {
             log.warn("Entity cannot be null.");
@@ -51,5 +56,7 @@ public class TodoService {
             throw new RuntimeException("UnKnown user.");
         }
     }
+
+    // update 파트
 
 }
