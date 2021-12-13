@@ -14,6 +14,8 @@ public interface TodoRepository extends JpaRepository<TodoEntity, String> {
     // nativeQuery = true로 지정하면 value로 지정한 쿼리가 Native 쿼리로 사용된다.
     @Query(value = "FROM TodoEntity t " +
             "WHERE t.userId = :userId")
-    List<TodoEntity> findAllByUserId(
+    List<TodoEntity> findByUserId(
             @Param("userId") String userId);
+
+
 }
