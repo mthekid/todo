@@ -4,6 +4,7 @@ import com.starlab.withreact.todo.dto.ResponseDTO;
 import com.starlab.withreact.todo.dto.TodoDTO;
 import com.starlab.withreact.todo.model.TodoEntity;
 import com.starlab.withreact.todo.service.TodoService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -12,6 +13,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Slf4j
 @RestController
 @RequestMapping("todo")
 public class TodoController {
@@ -86,6 +88,77 @@ public class TodoController {
 
         // 4 반환
         return ResponseEntity.ok().body(response);
+    }
+
+    @PutMapping
+    public ResponseEntity<?> updateTodo(@RequestBody TodoDTO dto) {
+        String temporaryUserId = "temporary-user";
+
+        log.info("Request Body dto -> {} ", dto);
+
+        // 요청으로 넘어온 DTO를 영속성 엔티티 형식 데이터 전환
+        TodoEntity entity = TodoDTO.toEntity(dto);
+
+        log.info("dto -> entity {} ", entity);
+
+        // id 초기화
+        entity.setUserId(temporaryUserId);
+
+        // 서비스 파트를 거쳐 업데이트
+        List<TodoEntity> entities = service.update(entity);
+
+        log.info("entities ->  {} ", entities);
+
+        // 스트림을 활용해 전환
+        List<TodoDTO> dtos = entities.stream()
+                .map(TodoDTO::new)
+                .collect(Collectors.toList());
+
+        log.info("dtos ->  {} ", dtos);
+
+        // 변환된 DTO로 ResponseDTO 초기화
+        ResponseDTO<TodoDTO> response = ResponseDTO.<TodoDTO>builder()
+                .data(dtos)
+                .build();
+
+        log.info("response -> {} ", response);
+
+        // DTO 리턴
+        return ResponseEntity.ok().body(response);
+    }
+
+    @DeleteMapping
+    public ResponseEntity<?> deleteTodo(@RequestBody TodoDTO dto) {
+        try {
+            String temporaryUserId = "temporary-user";
+
+            // DTO를 엔티티로 변환
+            TodoEntity entity = TodoDTO.toEntity(dto);
+
+            // 임시 사용자 아이디 지정
+            entity.setUserId(temporaryUserId);
+
+            // 삭제 [ JPA에서 기본 delete 메서드를 구현해준다. ]
+            List<TodoEntity> entities = service.delete(entity);
+
+            List<TodoDTO> dtos = entities.stream().map(TodoDTO::new)
+                    .collect(Collectors.toList());
+
+            // 변환된 DTO 리스트를 이용해 ResponseDTO 초기화
+            ResponseDTO<TodoDTO> response = ResponseDTO.<TodoDTO>builder()
+                    .data(dtos)
+                    .build();
+
+            // ResponseDTO를 리턴
+            return ResponseEntity.ok().body(response);
+        } catch (Exception e) {
+            String error = e.getMessage();
+            ResponseDTO<TodoDTO> response = ResponseDTO.<TodoDTO>builder()
+                    .error(error)
+                    .build();
+
+            return ResponseEntity.badRequest().body(response);
+        }
     }
 
 }
