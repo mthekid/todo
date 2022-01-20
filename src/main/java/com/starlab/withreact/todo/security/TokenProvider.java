@@ -10,6 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import java.time.Instant;
@@ -22,36 +23,49 @@ import java.util.Date;
 @Slf4j
 @Service
 public class TokenProvider {
-
-    private static final String SECRET_KEY = "NMA8JPctFuna59f5zxcasfqqgadasdasdasqweqwqwqwdgzxvzxdasd";
+    private static final SecretKey SECRET_KEY = Keys.secretKeyFor(SignatureAlgorithm.HS512);
 
     public String create(UserEntity userEntity) {
-        // 기한은 지금부터 1일로 지정
+        // 기한 지금으로부터 1일로 설정
         Date expiryDate = Date.from(
-                Instant.now().plus(1, ChronoUnit.DAYS)
-        );
+                Instant.now()
+                        .plus(1, ChronoUnit.DAYS));
 
-        // signWith이 deprecated되었고 Key 값을 생성하고 서명을 진행해야 한다. [ 길이가 256 비트 이상 (32글자이상)이어야 한다. ]
-        Key key = Keys.hmacShaKeyFor(SECRET_KEY.getBytes(StandardCharsets.UTF_8));
-
-        // JWT Token 생성하기
-        // payload -> 서명 정보
+		/*
+		{ // header
+		  "alg":"HS512"
+		}.
+		{ // payload
+		  "sub":"40288093784915d201784916a40c0001",
+		  "iss": "demo app",
+		  "iat":1595733657,
+		  "exp":1596597657
+		}.
+		// SECRET_KEY를 이용해 서명한 부분
+		Nn4d1MOVLZg79sfFACTIpCPKqWmpZMZQsbNrXdJJNWkRv50_l7bPLQPwhMobT4vBOG6Q3JYjhDrKFlBSaUxZOg
+		 */
+        // JWT Token 생성
         return Jwts.builder()
+                // header에 들어갈 내용 및 서명을 하기 위한 SECRET_KEY
+                .signWith(SignatureAlgorithm.HS512, SECRET_KEY)
+                // payload에 들어갈 내용
                 .setSubject(userEntity.getId()) // sub
                 .setIssuer("demo app") // iss
                 .setIssuedAt(new Date()) // iat
                 .setExpiration(expiryDate) // exp
-        .signWith(SignatureAlgorithm.HS256, SECRET_KEY).compact(); // 토큰 생성.
+                .compact();
     }
 
-    public String validateAndGetUserId(String jwt) {
-        // parseClaimsJws 메서드에서 Base64로 디코딩 및 파싱한다.
-        // 헤더와 페이로드를 setSigningKey로 넘어온 시크릿을 통해 서명하고 token의 서명과 비교한다. -> 위조되지 않으면 페이로드(claims)를 리턴하고, 위조한 경우 예외를 던진다.
-        Jws<Claims> claims = Jwts.parserBuilder()
+    public String validateAndGetUserId(String token) {
+        // parseClaimsJws메서드가 Base 64로 디코딩 및 파싱.
+        // 즉, 헤더와 페이로드를 setSigningKey로 넘어온 시크릿을 이용 해 서명 후, token의 서명 과 비교.
+        // 위조되지 않았다면 페이로드(Claims) 리턴
+        // 그 중 우리는 userId가 필요하므로 getBody를 부른다.
+        Claims claims = Jwts.parser()
                 .setSigningKey(SECRET_KEY)
-                .build()
-                .parseClaimsJws(jwt);
+                .parseClaimsJws(token)
+                .getBody();
 
-        return claims.getBody().getSubject();
+        return claims.getSubject();
     }
 }
